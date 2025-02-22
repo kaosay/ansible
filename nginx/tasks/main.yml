@@ -1,0 +1,11 @@
+---
+# tasks file for nginx
+- name: copy nginx.tar.gz
+  copy:
+    src: ../files/nginx-1.24.0.tar.gz
+    dest: /tmp 
+   
+- name: unpack nginx
+  shell:
+    cmd: tar -xf nginx-1.24.0.tar.gz
+    chdir: /tmp
