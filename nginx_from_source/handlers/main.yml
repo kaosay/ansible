@@ -1,0 +1,6 @@
+# handlers file for nginx_from_source
+---
+- name: Restart NGINX
+  systemd:
+    name: nginx
+    state: restarted

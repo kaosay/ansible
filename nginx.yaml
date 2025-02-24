@@ -1,3 +1,11 @@
 #Mon Feb 17 23:27:19 CST 2025
 
-# Install nginx use ansible playbook
+- name: Install nginx use ansible playbook
+  hosts: k8s
+  tasks:
+  - name: show version of system	
+    shell:
+      cmd: cat /etc/os-release
+
+  - name: show ip
+    shell: ifconfig| grep cast
