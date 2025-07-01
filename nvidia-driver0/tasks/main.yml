@@ -1,0 +1,91 @@
+# tasks file for nvidia-driver
+---
+# roles/nvidia_setup/tasks/main.yml
+- name: Remove existing NVIDIA container toolkit source list
+  file:
+    path: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    state: absent
+  become: yes
+
+- name: Remove existing graphics drivers PPA source list
+  file:
+    path: /etc/apt/sources.list.d/graphics-drivers-ubuntu-ppa-jammy.list
+    state: absent
+  become: yes
+
+- name: Add graphics drivers PPA
+  command: add-apt-repository --yes ppa:graphics-drivers/ppa
+
+- name: Get distribution information
+  shell: . /etc/os-release; echo $ID$VERSION_ID
+  register: distribution
+  changed_when: false
+
+- name: Copy NVIDIA container toolkit source list
+  copy:
+    src: files/nvidia-container-toolkit.list
+    dest: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    mode: '0644'
+  become: yes
+
+- name: Modify graphics drivers PPA URL
+  replace:
+    path: /etc/apt/sources.list.d/graphics-drivers-ubuntu-ppa-jammy.list
+    regexp: 'ppa.launchpadcontent.net'
+    replace: 'launchpad.proxy.ustclug.org'
+  become: yes
+
+- name: Copy NVIDIA container toolkit GPG key
+  copy:
+    src: files/libnvidia-container.gpg
+    dest: /etc/apt/trusted.gpg.d/libnvidia-container.gpg
+    mode: '0644'
+  become: yes
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Install NVIDIA packages 560
+  apt:
+    name:
+      - nvidia-driver-560
+    state: present
+  become: yes
+
+- name: Install NVIDIA packages
+  apt:
+    name:
+      - nvidia-modprobe
+      - nvidia-settings
+    state: present
+  become: yes
+
+- name: Enable NVIDIA persistence mode
+  command: nvidia-smi -pm 1
+  become: yes
+  changed_when: false
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+  become: yes
+
+- name: Unload NVIDIA kernel modules
+  modprobe:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - nvidia_modeset
+    - nvidia_uvm
+    - nvidia
+  become: yes
+  ignore_errors: yes
+
+- name: Verify NVIDIA installation
+  command: nvidia-smi
+  become: yes
+  changed_when: false
+  register: nvidia_smi_output
+
