@@ -1,0 +1,6 @@
+# defaults file for docker-install
+---
+docker_version: "5:27.5.0-1~ubuntu.22.04~jammy"
+docker_repo_url: "https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu"
+docker_repo_arch: "amd64"
+ubuntu_codename: "jammy"

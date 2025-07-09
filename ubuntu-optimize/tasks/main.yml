@@ -1,0 +1,62 @@
+---
+# tasks file for ubuntu-optimize
+#- name: Remove outdated known_hosts entry
+#  ansible.builtin.command:
+#    #cmd: ssh-keygen -f "/home/ubuntu/.ssh/known_hosts" -R "{{ ansible_default_ipv4.address }}"
+#    cmd: ssh-keygen -f "/home/ubuntu/.ssh/known_hosts" -R "{{ ansible_host }}"
+#    changed_when: true
+#    delegate_to: localhost
+
+- name: Scan and update known_hosts
+  ansible.builtin.shell:
+    cmd: ssh-keyscan -H {{ ansible_default_ipv4.address }} >> "/home/ubuntu/.ssh/known_hosts"
+  changed_when: true
+  delegate_to: localhost
+
+- name: Copy sources.list
+  copy:
+    src: sources.list
+    dest: /etc/apt/sources.list
+
+- name: copy file to sudoers.d
+  copy:
+    src: ubuntu
+    dest: /etc/sudoers.d/ubuntu
+
+- name: ensure ssh public key is added to authorized_keys
+  ansible.posix.authorized_key:
+    user: ubuntu
+    key: "{{ lookup('file', 'ubuntu_id_rsa.pub') }}"
+    state: present
+
+- name: ensure ssh public key of root is added to authorized_keys
+  ansible.posix.authorized_key:
+    user: root
+    key: "{{ lookup('file', 'root_id_rsa.pub') }}"
+    state: present
+
+- name: set up limit.conf
+  blockinfile:
+    path: /etc/security/limits.conf
+    block: |
+      root            soft    nofile          100001
+      root            hard    nofile          100002
+      *               soft    nofile          100001
+      *               hard    nofile          100002
+      root            soft    memlock         unlimited
+      root            hard    memlock         unlimited
+      *               soft    memlock         unlimited
+      *               hard    memlock         unlimited
+
+- name: ulimit -a
+  shell: ulimit -a
+  register: limit_out
+
+- debug:
+    var: limit_out.stdout_lines
+
+- name: set timezone to Asia/Shanghai
+  timezone:
+    name: Asia/Shanghai
+
+- shell: echo "ubuntu:Mudata#1028" | chpasswd

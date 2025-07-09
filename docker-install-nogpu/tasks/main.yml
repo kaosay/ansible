@@ -1,0 +1,62 @@
+# tasks file for docker-install
+---
+- name: Create a directory if it does not exist
+  file:
+    path: /data/docker
+    state: directory
+
+- name: Create a directory if it does not exist
+  file:
+    path: /etc/docker
+    state: directory
+
+- name: Copy daemon.json
+  copy:
+    src: daemon.json
+    dest: /etc/docker/
+
+- name: Copy nvidia directory to /usr/local/
+  copy:
+    src: nvidia
+    dest: /usr/local/
+
+- name: Ensure /etc/apt/keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Copy Docker ASC key
+  ansible.builtin.copy:
+    src: docker.asc
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+  become: yes
+
+- name: Copy Docker GPG key
+  ansible.builtin.copy:
+    src: docker.gpg
+    dest: /etc/apt/keyrings/docker.gpg
+    mode: '0644'
+  become: yes
+
+- name: Configure Docker APT repository
+  ansible.builtin.template:
+    src: docker.list.j2
+    dest: /etc/apt/sources.list.d/docker.list
+    mode: '0644'
+  become: yes
+  notify: Update APT cache
+
+- name: update
+  apt:
+    update_cache: yes
+
+- name: Install Docker and Docker Compose
+  ansible.builtin.apt:
+    name:
+      - docker-ce={{ docker_version }}
+      - docker-compose
+    state: present
+  become: yes

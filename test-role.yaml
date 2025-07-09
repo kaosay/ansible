@@ -1,0 +1,5 @@
+---
+- hosts: rent
+  become: yes
+  roles:
+    - test-role
