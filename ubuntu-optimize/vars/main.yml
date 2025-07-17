@@ -1,2 +1,9 @@
 ---
 # vars file for ubuntu-optimize
+target_user: "{{ ansible_user | default('ubuntu') }}"  # Default to 'ubuntu' user, or specify your target user
+hist_size: 10000  # Number of commands to store in memory
+hist_file_size: 20000  # Number of commands to store in history file
+hist_time_format: '"%F %T $ "'  # Timestamp format (YYYY-MM-DD HH:MM:SS)
+
+user_name: ubuntu
+user_password: $5$qYQ542YT.H4eWZt6$70D3CUcCp1v8ag0amq1DnzQ5elRi.en/Jc/bIUdCHp6

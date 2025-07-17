@@ -59,4 +59,53 @@
   timezone:
     name: Asia/Shanghai
 
-- shell: echo "ubuntu:Mudata#1028" | chpasswd
+#- shell: echo "ubuntu:Mudata#1028" | chpasswd
+
+- name: Set password for target ubuntu
+  ansible.builtin.user:
+    name: "{{ user_name }}"
+    password: "{{ user_password }}"
+    state: present
+
+## Task 2: Set HISTSIZE in .bashrc
+#- name: Configure HISTSIZE
+#  ansible.builtin.lineinfile:
+#    path: "/home/{{ target_user }}/.bashrc"
+#    regexp: '^HISTSIZE='
+#    line: "HISTSIZE={{ hist_size }}"
+#    state: present
+#  when: not system_wide | default(false)
+#
+## Task 3: Set HISTFILESIZE in .bashrc
+#- name: Configure HISTFILESIZE
+#  ansible.builtin.lineinfile:
+#    path: "/home/{{ target_user }}/.bashrc"
+#    regexp: '^HISTFILESIZE='
+#    line: "HISTFILESIZE={{ hist_file_size }}"
+#    state: present
+#  when: not system_wide | default(false)
+#
+## Task 4: Set HISTTIMEFORMAT in .bashrc
+#- name: Configure HISTTIMEFORMAT
+#  ansible.builtin.lineinfile:
+#    path: "/home/{{ target_user }}/.bashrc"
+#    regexp: '^HISTTIMEFORMAT='
+#    line: "HISTTIMEFORMAT={{ hist_time_format }}"
+#    state: present
+#  when: not system_wide | default(false)
+
+- name: set up .bashrc of ubuntu
+  blockinfile:
+    path: /home/ubuntu/.bashrc
+    block: |
+      HISTSIZE={{ hist_size }}
+      HISTFILESIZE={{ hist_file_size }}
+      HISTTIMEFORMAT={{ hist_time_format }}
+
+- name: set up .bashrc of root
+  blockinfile:
+    path: /root/.bashrc
+    block: |
+      HISTSIZE={{ hist_size }}
+      HISTFILESIZE={{ hist_file_size }}
+      HISTTIMEFORMAT={{ hist_time_format }}
