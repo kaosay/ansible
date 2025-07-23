@@ -1,0 +1,86 @@
+# tasks file for disk-mount
+---
+# tasks/main.yml
+
+#======== delete exist lvm
+- name: delete lv
+  command: lvremove -f /dev/vg_data/lv_data /dev/vg00/lv00
+  ignore_errors: yes
+
+- name: delete vg
+  command: vgremove -f vg_data vg00
+  ignore_errors: yes
+
+- name: delete pv
+  command: pvremove -f {{ lvm_disk }} 
+  ignore_errors: yes
+
+
+- name: 安装 LVM2 软件包
+  ansible.builtin.package:
+    name: "{{ lvm_package }}"
+    state: present
+  become: true
+
+- name: 检查目标磁盘是否存在
+  ansible.builtin.stat:
+    path: "{{ lvm_disk }}"
+  register: disk_stat
+  failed_when: not disk_stat.stat.exists
+  become: true
+
+#- name: 创建物理卷
+#  community.general.lvg:
+#    pvs: "{{ lvm_disk }}"
+#    state: present
+#  become: true
+
+- name: 创建卷组
+  community.general.lvg:
+    vg: "{{ lvm_vg_name }}"
+    pvs: "{{ lvm_disk }}"
+    state: present
+  become: true
+
+- name: 创建逻辑卷
+  community.general.lvol:
+    vg: "{{ lvm_vg_name }}"
+    lv: "{{ lvm_lv_name }}"
+    size: "{{ lvm_lv_size }}"
+    state: present
+  become: true
+  #ignore_errors: yes
+
+- name: 格式化逻辑卷为指定文件系统
+  ansible.builtin.filesystem:
+    fstype: "{{ lvm_filesystem }}"
+    dev: "/dev/{{ lvm_vg_name }}/{{ lvm_lv_name }}"
+  become: true
+
+- name: 创建挂载点目录
+  ansible.builtin.file:
+    path: "{{ lvm_mount_point }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: 挂载逻辑卷到挂载点
+  ansible.builtin.mount:
+    path: "{{ lvm_mount_point }}"
+    src: "/dev/{{ lvm_vg_name }}/{{ lvm_lv_name }}"
+    fstype: "{{ lvm_filesystem }}"
+    opts: "{{ lvm_mount_options }}"
+    state: mounted
+  become: true
+
+- name: 确保逻辑卷在 /etc/fstab 中配置
+  ansible.builtin.mount:
+    path: "{{ lvm_mount_point }}"
+    src: "/dev/{{ lvm_vg_name }}/{{ lvm_lv_name }}"
+    fstype: "{{ lvm_filesystem }}"
+    opts: "{{ lvm_mount_options }}"
+    state: present
+    dump: 0
+    passno: 2
+  when: lvm_fstab_ensure | bool
+  become: true

@@ -1,0 +1,12 @@
+# defaults file for disk-mount
+---
+# defaults/main.yml
+lvm_package: lvm2                     # LVM 软件包名
+lvm_disk: /dev/nvme0n1                # 用于创建物理卷的磁盘
+lvm_vg_name: vg00                     # 卷组名称
+lvm_lv_name: lv00                     # 逻辑卷名称
+lvm_lv_size: 100%FREE                 # 逻辑卷大小（使用卷组全部可用空间）
+lvm_filesystem: ext4                  # 文件系统类型
+lvm_mount_point: /data               # 挂载点目录
+lvm_mount_options: defaults           # 挂载选项
+lvm_fstab_ensure: true                # 是否更新 /etc/fstab
