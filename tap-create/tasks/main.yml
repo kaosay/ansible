@@ -51,20 +51,11 @@
 
 
 # ------------------------------------------ Create tap0-tap8
-- name: Install required packages
-  apt:
-    name:
-      - uml-utilities
-      - bridge-utils
-      - net-tools
-    state: present
-    update_cache: yes
- 
 - name: Create and configure tap0-8 interface ----
   shell: |
-    tunctl -t tap{{ item }} -u ubuntu
-    brctl addif br0 tap{{ item }}
-    ifconfig tap{{ item }} up
+    ip tuntap add mode tap name tap{{ item }}
+    ip link set tap{{ item }} master br0
+    ip link set tap{{ item }} up
   args:
     creates: /sys/class/net/tap{{ item }}
   loop:

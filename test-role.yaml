@@ -1,5 +1,6 @@
 ---
-- hosts: rent
+- hosts: test
   become: yes
   roles:
-    - test-role
+    #- test-role
+    - tap-create
