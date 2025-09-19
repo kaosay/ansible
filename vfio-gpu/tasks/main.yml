@@ -1,0 +1,46 @@
+---
+# tasks file for vfio-gpu
+
+- name: Set up /etc/default/grub
+  blockinfile:
+    path: /etc/default/grub
+    block: |
+      GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on"
+  register: grub_result
+
+- name: Update grub
+  shell: update-grub 
+  when: grub_result.changed
+
+- name: Add nouvea blacklist
+  blockinfile:
+    path: /etc/modprobe.d/blacklist.conf
+    block: |
+      blacklist nouveau
+
+- name: Edit driver_override and drivers_probe
+  shell: |
+    echo "vfio-pci" > "/sys/bus/pci/devices/0000:{{ item }}/driver_override"
+    echo "0000:{{ item }}" > "/sys/bus/pci/devices/0000:{{ item }}/driver/unbind"
+    echo "0000:{{ item }}" > "/sys/bus/pci/drivers_probe"
+  args:
+    creates: "/sys/bus/pci/drivers/vfio-pci/0000:{{ item }}"
+  loop:
+    - "17:00.0"
+    - "17:00.1"
+    - "2a:00.0"
+    - "2a:00.1"
+    - "3d:00.0"
+    - "3d:00.1"
+    - "63:00.0"
+    - "63:00.1"
+    - "99:00.0"
+    - "99:00.1"
+    - "ab:00.0"
+    - "ab:00.1"
+    - "bd:00.0"
+    - "bd:00.1"
+    - "e1:00.0"
+    - "e1:00.1"
+
+

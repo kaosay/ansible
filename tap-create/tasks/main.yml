@@ -1,0 +1,79 @@
+# tasks file for tap-create
+---
+#- name: Backup 50-cloud-init.yaml
+- name: Rename 50-cloud-init.yaml to 50-cloud-init.yaml.bak
+  command: mv /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bak
+  args:
+    creates: /etc/netplan/50-cloud-init.yaml.bak
+    removes: /etc/netplan/50-cloud-init.yaml
+  register: rename_result
+  failed_when: rename_result.rc != 0 and 'No such file or directory' not in rename_result.stderr
+
+- name: Disable cloud-init's network
+  copy:
+    content: |
+      network: {config: disabled}
+    dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    mode: '0644'
+        
+- name: Ensure Netplan configuration file exists
+  copy:
+    content: |
+      network:
+        version: 2
+        renderer: networkd
+        ethernets:
+          ens37f0np0: {}
+          ens37f1np1: {}
+        bonds:
+          bond0:
+            interfaces: [ens37f0np0, ens37f1np1]
+            parameters:
+              mode: 802.3ad
+              lacp-rate: slow
+              transmit-hash-policy: layer2
+        bridges:
+          br0:
+            interfaces: [bond0]
+            addresses: [{{ ansible_default_ipv4.address }}/24]
+            routes:
+              - to: default
+                via: 10.100.3.254
+            nameservers:
+              addresses: [114.114.114.114]
+    dest: /etc/netplan/50-cloud-init.yaml
+    mode: '0644'
+  register: netplan_config
+
+- name: Apply Netplan configuration
+  command: netplan apply
+  when: netplan_config.changed
+
+
+# ------------------------------------------ Create tap0-tap8
+- name: Install required packages
+  apt:
+    name:
+      - uml-utilities
+      - bridge-utils
+      - net-tools
+    state: present
+    update_cache: yes
+ 
+- name: Create and configure tap0-8 interface ----
+  shell: |
+    tunctl -t tap{{ item }} -u ubuntu
+    brctl addif br0 tap{{ item }}
+    ifconfig tap{{ item }} up
+  args:
+    creates: /sys/class/net/tap{{ item }}
+  loop:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
