@@ -1,0 +1,69 @@
+# tasks file for mysql
+---
+#- name: Install and configure MySQL on Ubuntu
+  #hosts: mysql_servers
+  #become: yes # Run tasks with sudo privileges
+  #vars:
+  #  mysql_root_password: "kaosay" # Replace with a strong password
+
+#mysql_root_password: "kaosay" # Replace with a strong password
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install MySQL server and client
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - mysql-server
+    - python3-pymysql
+      #- mysql-client
+
+- name: Ensure MySQL service is running and enabled
+  ansible.builtin.systemd:
+    name: mysql
+    state: started
+    enabled: yes
+
+      #- name: Secure MySQL installation - Set root password
+      #  community.mysql.mysql_user:
+      #    name: root
+      #    host: localhost
+      #    password: "{{ mysql_root_password }}"
+      #    login_unix_socket: /var/run/mysqld/mysqld.sock # Adjust if necessary
+      #    state: present
+
+- name: Create databases user with name u_game
+  mysql_user:
+    name: u_game
+    password: Test@game2
+    host: '%'
+    priv: '*.*:ALL,GRANT'
+      #login_unix_socket: /var/run/mysqld/mysqld.sock # Adjust if necessary
+    state: present
+    login_user: root
+    login_password: kaosay
+
+- name: Set mysql bind-address
+  lineinfile:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp: '^bind-address*'
+    line: bind-address            = 0.0.0.0
+    state: present
+  notify: Restart mysql
+
+      #- name: Secure MySQL installation - Remove anonymous users
+      #  community.mysql.mysql_user:
+      #    name: ""
+      #    host: "{{ item }}"
+      #    state: absent
+      #  loop:
+      #    - localhost
+      #    - "{{ ansible_hostname }}" # Removes anonymous users for the server's hostname
+
+    #- name: Secure MySQL installation - Remove test database
+    #  community.mysql.mysql_db:
+    #    name: test
+    #    state: absent

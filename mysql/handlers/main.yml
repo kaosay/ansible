@@ -1,0 +1,8 @@
+---
+# handlers file for mysql
+# In roles/mysql/handlers/main.yml (or directly in your playbook)
+#handlers:
+- name: Restart mysql
+  ansible.builtin.service:
+    name: mysql # Use 'mysqld' for Red Hat-based systems
+    state: restarted

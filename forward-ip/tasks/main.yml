@@ -1,0 +1,99 @@
+# tasks file for forward-ip
+---
+- name: Set ip forward on in /proc and in the sysctl file and reload if necessary
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: true
+    reload: true
+    #state: absent
+
+- name: Add IP masquerading
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    jump: MASQUERADE
+      #state: absent
+    comment: "Add snat for SUNSHINE ip forward."
+
+- name: Add forward accept
+  iptables:
+    table: filter
+    chain: FORWARD
+    match: conntrack
+    ctstate:
+      - RELATED
+      - ESTABLISHED
+    jump: ACCEPT
+      #state: absent
+    comment: "Accept of SUNSHINE"
+
+      #- name: Ensure the SUNSHINE-PREROUTING chain exists in the nat table
+      #  ansible.builtin.iptables:
+      #    table: nat
+      #    chain: SUNSHINE-PREROUTING
+      #      #chain_management: true
+      #    state: present
+      #  become: true
+
+- name: Create user-defined chain SUNSHINE-PREROUTING
+  iptables:
+    table: nat
+    chain: SUNSHINE-PREROUTING
+    chain_management: true
+    numeric: true
+      #state: absent
+
+- name: Create user-defined chain SUNSHINE-FORWARD
+  ansible.builtin.iptables:
+    #table: filter
+    chain: SUNSHINE-FORWARD
+    chain_management: true
+    numeric: true
+      #state: absent
+
+- name: Add SUNSHINE-PREROUTING
+  iptables:
+    table: nat
+    chain: PREROUTING
+    protocol: "{{ item }}"
+    jump: SUNSHINE-PREROUTING
+      #state: absent
+    comment: "Customer chain"
+  loop:
+    - tcp
+    - udp
+
+- name: Add SUNSHINE-FORWARD
+  iptables:
+    table: filter
+    chain: FORWARD
+    jump: SUNSHINE-FORWARD
+      #state: absent
+    comment: "Accept outgoing"
+
+- name: Add NAT and FORWARD rules for each IP and port
+  ansible.builtin.iptables:
+    table: "{{ item.table }}"
+    chain: "{{ item.chain }}"
+    protocol: "{{ item.protocol }}"
+    destination: "{{ item.dest_ip | default(omit) }}"
+    destination_port: "{{ item.dport }}"
+    in_interface: "{{ item.in_interface | default(omit) }}"
+    jump: "{{ item.jump }}"
+    to_destination: "{{ item.to_destination | default(omit) }}"
+      #state: absent
+    comment: "{{ item.comment }}"
+  loop: "{{ iptables_rules }}"
+  vars:
+    iptables_rules: "{{ lookup('template', 'rules.j2') | from_yaml }}"
+  register: iptables_result
+
+- name: Save iptables rules
+  shell: netfilter-persistent save
+  when: iptables_result.changed
+
+    #- name: Save iptables rules
+    #  ansible.builtin.command: iptables-save > /etc/iptables/rules.v4
+    #  when: iptables_result.changed
+    #  changed_when: true

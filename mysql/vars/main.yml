@@ -1,0 +1,4 @@
+---
+# vars file for mysql
+
+mysql_root_password: "kaosay" # Replace with a strong password

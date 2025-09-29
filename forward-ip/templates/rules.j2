@@ -1,0 +1,24 @@
+{% set ns = namespace(port=port_begin) %}
+{% for count in ip_range %}
+{% set ip = '10.100.3.' + count|string %}
+{% for dport in dport_array %}
+{% for proto in ['tcp', 'udp'] %}
+- table: nat
+  chain: SUNSHINE-PREROUTING
+  protocol: {{ proto }}
+  dport: {{ ns.port }}
+  jump: DNAT
+  to_destination: {{ ip }}:{{ dport }}
+  comment: "--- cloudgame {{ proto }} port forward {{ ns.port }}"
+- table: filter
+  chain: SUNSHINE-FORWARD
+  protocol: {{ proto }}
+  dest_ip: {{ ip }}
+  dport: {{ dport }}
+  jump: ACCEPT
+  comment: "--- cloudgame {{ proto }} accept {{ ns.port }} ---"
+{% endfor %}
+{% set ns.port = ns.port + 1 %}
+{% endfor %}
+{% set ns.port = ns.port + 2 %}
+{% endfor %}

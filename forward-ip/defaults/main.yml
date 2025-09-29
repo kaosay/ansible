@@ -1,0 +1,6 @@
+# defaults file for forward-ip
+---
+port_begin: 32110
+port: "{{ port_begin }}"
+dport_array: [47989, 47990, 47984, 47998, 47999, 48000, 48010, 47991]
+ip_range: "{{ range(61, 64) | list }}"

@@ -1,0 +1,42 @@
+---
+# tasks file for k3s-calico
+
+- name: Get the host IP address
+  set_fact:
+    host_ip: "{{ ansible_default_ipv4.address }}"
+
+- name: Replace dots with dashes in the host IP
+  set_fact:
+    node_name: "{{ host_ip | replace('.', '-') }}"
+
+- name: Install k3s 
+  ansible.builtin.shell: |
+    curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh | \
+    INSTALL_K3S_VERSION=v1.32.5+k3s1 \
+    INSTALL_K3S_MIRROR=cn \
+    K3S_TOKEN=12345 \
+    INSTALL_K3S_EXEC="server \
+      --docker \
+      --disable=traefik \
+      --disable=local-storage \
+      --disable-network-policy \
+      --disable-cloud-controller \
+      --disable-helm-controller \
+      --cluster-cidr=10.42.0.0/15 \
+      --service-cidr=10.46.0.0/15 \
+      --service-node-port-range=50000-60000 \
+      --tls-san={{ ansible_default_ipv4.address }} \
+      --node-name={{ node_name }} \
+      --advertise-address={{ ansible_default_ipv4.address }}" \
+      sh -s -   \
+      --data-dir=/data/k3s   \
+      --cluster-init   \
+      --system-default-registry="registry.cn-hangzhou.aliyuncs.com"
+  args:
+    creates: /usr/local/bin/k3s
+  register: k3s_result
+
+- name: Label node ngpu
+  ansible.builtin.shell: kubectl label node {{ node_name }} ngpu=8
+  when: k3s_result.changed
+
