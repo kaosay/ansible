@@ -1,0 +1,8 @@
+---
+- name: Install NGINX from source
+  hosts: all
+#  vars:
+#      ansible_python_interpreter: /opt/test/Python-3.12.4/python
+  become: yes  # Run as sudo
+  roles:
+    - nginx_from_source

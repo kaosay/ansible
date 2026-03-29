@@ -1,0 +1,7 @@
+- name: Check which Python interpreter Ansible is using
+  hosts: all
+  tasks:
+    - name: Display Ansible's Python interpreter
+      ansible.builtin.debug:
+        msg: "Ansible is using: {{ ansible_python_interpreter }}"
+

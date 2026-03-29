@@ -1,0 +1,119 @@
+# tasks file for nginx_from_source
+---
+- name: Ensure prerequisite packages are installed (CentOS)
+  yum:
+    name:
+      - gcc
+      - make
+      - zlib-devel
+      - pcre-devel
+      - openssl-devel
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure prerequisite packages are installed (Ubuntu)
+  apt:
+    name:
+      - build-essential
+      - libpcre3-dev
+      - zlib1g-dev
+      - libssl-dev
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Create nginx user
+  user:
+    name: "{{ nginx_user }}"
+    system: yes
+    shell: /sbin/nologin
+    create_home: no
+
+- name: Download NGINX source
+  get_url:
+    url: "http://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
+    dest: "/tmp/nginx-{{ nginx_version }}.tar.gz"
+    mode: "0644"
+
+- name: Extract NGINX source
+  unarchive:
+    src: "/tmp/nginx-{{ nginx_version }}.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+
+- name: Configure NGINX source
+  command: >
+    ./configure
+    --prefix={{ nginx_install_dir }}
+    --conf-path={{ nginx_conf_path }}
+    --pid-path={{ nginx_pid_path }}
+    --error-log-path={{ nginx_log_dir }}/error.log
+    --http-log-path={{ nginx_log_dir }}/access.log
+    --with-http_ssl_module
+    --with-pcre
+    --user={{ nginx_user }}
+    --group={{ nginx_user }}
+  args:
+    chdir: "/tmp/nginx-{{ nginx_version }}"
+    creates: "/tmp/nginx-{{ nginx_version }}/Makefile"
+- name: Compile NGINX
+  make:
+    chdir: "/tmp/nginx-{{ nginx_version }}"
+    target: build
+  register: compile_result
+
+- name: Install NGINX
+  make:
+    chdir: "/tmp/nginx-{{ nginx_version }}"
+    target: install
+  when: compile_result.changed
+
+- name: Create log directory
+  file:
+    path: "{{ nginx_log_dir }}"
+    state: directory
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_user }}"
+    mode: "0755"
+
+- name: Ensure NGINX binary is in PATH
+  file:
+    src: "{{ nginx_install_dir }}/sbin/nginx"
+    dest: "/usr/local/bin/nginx"
+    state: link
+
+- name: Clean up source files
+  file:
+    path: "/tmp/nginx-{{ nginx_version }}"
+    state: absent
+
+- name: Clean up downloaded tarball
+  file:
+    path: "/tmp/nginx-{{ nginx_version }}.tar.gz"
+    state: absent
+
+- name: Install NGINX systemd service
+  copy:
+    dest: "/etc/systemd/system/nginx.service"
+    content: |
+      [Unit]
+      Description=NGINX Web Server
+      After=network.target
+
+      [Service]
+      ExecStart={{ nginx_install_dir }}/sbin/nginx
+      ExecReload={{ nginx_install_dir }}/sbin/nginx -s reload
+      ExecStop={{ nginx_install_dir }}/sbin/nginx -s quit
+      PIDFile={{ nginx_pid_path }}
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: "0644"
+  notify: Restart NGINX
+
+- name: Enable and start NGINX service
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started

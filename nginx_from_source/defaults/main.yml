@@ -1,0 +1,8 @@
+---
+# defaults file for nginx_from_source
+nginx_version: "1.25.4"  # Latest stable version as of Feb 2025; check nginx.org for updates
+nginx_user: "nginx"
+nginx_install_dir: "/usr/local/nginx"
+nginx_conf_path: "/usr/local/nginx/conf/nginx.conf"
+nginx_pid_path: "/var/run/nginx.pid"
+nginx_log_dir: "/var/log/nginx"
